@@ -1,0 +1,17 @@
+shuru fahim
+    kaj fahim factorial(n) {
+        jodi fahim (n <= 1) {
+            ferot fahim 1;
+        }
+        ferot fahim n * factorial(n - 1);
+    }
+
+    rakho fahim r = factorial(5);
+    bol fahim "5! =", r;
+
+    kaj fahim joga(a, b) {
+        ferot fahim a + b;
+    }
+
+    bol fahim "joga(3,4) =", joga(3, 4);
+shesh fahim

@@ -1,0 +1,6 @@
+shuru fahim
+    bol fahim "Ami nijer code likhlam!";
+    rakho fahim x = 5;
+    rakho fahim y = 10;
+    bol fahim "Total =", x + y;
+shesh fahim

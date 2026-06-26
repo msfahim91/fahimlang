@@ -1,0 +1,21 @@
+shuru fahim
+    rakho fahim i = 0;
+
+    jotokkhon fahim (i < 10) {
+        i += 1;
+
+        jodi fahim (i == 5) {
+            bol fahim "5 paichi, skip korlam";
+            cholo fahim;
+        }
+
+        jodi fahim (i == 8) {
+            bol fahim "8 e thamlam";
+            thamo fahim;
+        }
+
+        bol fahim "i =", i;
+    }
+
+    bol fahim "Loop sesh";
+shesh fahim

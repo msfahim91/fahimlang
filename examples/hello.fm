@@ -1,0 +1,10 @@
+shuru fahim
+    bol fahim "Hello, FahimLang!";
+
+    rakho fahim naam = "Fahim";
+    bol fahim "Amar naam", naam;
+
+    rakho fahim a = 10;
+    rakho fahim b = 20;
+    bol fahim "Sum =", a + b;
+shesh fahim

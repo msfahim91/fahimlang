@@ -1,0 +1,11 @@
+shuru fahim
+    rakho fahim boyosh = 17;
+
+    jodi fahim (boyosh >= 18) {
+        bol fahim "Tumi adult";
+    } nahoy fahim (boyosh >= 13) {
+        bol fahim "Tumi teenager";
+    } nahole fahim {
+        bol fahim "Tumi shishu";
+    }
+shesh fahim

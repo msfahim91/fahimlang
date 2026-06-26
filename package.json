@@ -1,0 +1,37 @@
+{
+  "name": "fahimlang",
+  "version": "1.0.0",
+  "description": "FahimLang (.fm) — a toy Banglish programming language, inspired by Bhailang.",
+  "main": "src/index.js",
+  "bin": {
+    "fahim": "bin/fahim.js",
+    "fm": "bin/fahim.js"
+  },
+  "scripts": {
+    "test": "node test/run-tests.js",
+    "hello": "node bin/fahim.js examples/hello.fm"
+  },
+  "keywords": [
+    "fahimlang",
+    "bhailang",
+    "toy-language",
+    "interpreter",
+    "banglish",
+    "bangla"
+  ],
+  "author": "Fahim",
+  "license": "MIT",
+  "files": [
+    "bin",
+    "src",
+    "examples",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<your-github-username>/fahimlang.git"
+  }
+}
