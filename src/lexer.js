@@ -8,6 +8,7 @@ const KEYWORD_WORDS = new Set([
   "bol",                  // print
   "jodi", "nahoy", "nahole", // if / else if / else
   "jotokkhon",             // while
+  "jonno",                  // for
   "thamo",                 // break
   "cholo",                 // continue
   "kaj",                   // function
@@ -20,7 +21,8 @@ const LITERAL_WORDS = new Set(["sotti", "mittha", "khali"]);
 const SINGLE_CHAR_TOKENS = {
   "(": "LPAREN", ")": "RPAREN",
   "{": "LBRACE", "}": "RBRACE",
-  ";": "SEMI", ",": "COMMA",
+  "[": "LBRACKET", "]": "RBRACKET",
+  ";": "SEMI", ",": "COMMA", ".": "DOT",
   "+": "PLUS", "-": "MINUS", "*": "STAR", "/": "SLASH", "%": "PERCENT",
 };
 

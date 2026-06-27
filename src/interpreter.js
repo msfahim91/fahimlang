@@ -58,8 +58,38 @@ function fahimToString(v) {
   if (v === null || v === undefined) return "khali";
   if (v === true) return "sotti";
   if (v === false) return "mittha";
+  if (Array.isArray(v)) return "[" + v.map(fahimToString).join(", ") + "]";
   return String(v);
 }
+
+// Built-in array methods (Banglish names)
+const ARRAY_METHODS = {
+  dorghyo: (arr) => arr.length,                                  // length
+  jog: (arr, val) => { arr.push(val); return arr.length; },       // push
+  bad: (arr) => (arr.length ? arr.pop() : null),                  // pop
+  shamne_jog: (arr, val) => { arr.unshift(val); return arr.length; }, // unshift
+  shamne_bad: (arr) => (arr.length ? arr.shift() : null),         // shift
+  ulto: (arr) => { arr.reverse(); return arr; },                  // reverse
+  shamil: (arr, val) => arr.includes(val),                        // includes
+  khujo: (arr, val) => arr.indexOf(val),                          // indexOf
+  joro: (arr, sep) => arr.map(fahimToString).join(sep !== undefined ? sep : ","), // join
+  kat: (arr, start, end) => arr.slice(start, end),                // slice
+  shaj: (arr) => { arr.sort((a, b) => (a > b ? 1 : a < b ? -1 : 0)); return arr; }, // sort
+};
+
+// Built-in string methods (Banglish names)
+const STRING_METHODS = {
+  dorghyo: (s) => s.length,                       // length
+  boro: (s) => s.toUpperCase(),                   // uppercase
+  choto: (s) => s.toLowerCase(),                  // lowercase
+  trim: (s) => s.trim(),
+  kat: (s, start, end) => s.slice(start, end),    // slice
+  bhag: (s, sep) => s.split(sep !== undefined ? sep : ""), // split -> array
+  shamil: (s, sub) => s.includes(sub),            // includes
+  khujo: (s, sub) => s.indexOf(sub),              // indexOf
+  bodol: (s, a, b) => s.split(a).join(b),         // replace all
+};
+
 
 function isTruthy(v) {
   if (v === null || v === undefined) return false;
@@ -125,6 +155,24 @@ class Interpreter {
         }
         return;
       }
+      case "ForStmt": {
+        const forEnv = new Environment(env);
+        if (node.init) this.execStatement(node.init, forEnv);
+        while (node.test === null || isTruthy(this.evalExpr(node.test, forEnv))) {
+          try {
+            this.execStatement(node.body, new Environment(forEnv));
+          } catch (signal) {
+            if (signal instanceof BreakSignal) break;
+            if (signal instanceof ContinueSignal) {
+              if (node.update) this.evalExpr(node.update, forEnv);
+              continue;
+            }
+            throw signal;
+          }
+          if (node.update) this.evalExpr(node.update, forEnv);
+        }
+        return;
+      }
       case "BreakStmt": throw new BreakSignal();
       case "ContinueStmt": throw new ContinueSignal();
       case "FuncDecl":
@@ -143,7 +191,38 @@ class Interpreter {
       case "StringLit": return node.value;
       case "BoolLit": return node.value;
       case "NullLit": return null;
+      case "ArrayLit": return node.elements.map((el) => this.evalExpr(el, env));
       case "Identifier": return env.get(node.name);
+      case "Index": {
+        const obj = this.evalExpr(node.object, env);
+        const idx = this.evalExpr(node.index, env);
+        if (Array.isArray(obj) || typeof obj === "string") {
+          const val = obj[idx];
+          return val !== undefined ? val : null;
+        }
+        throw new FahimRuntimeError("Index ([ ]) shudhu array ba string er upore kaj kore");
+      }
+      case "IndexAssign": {
+        const obj = this.evalExpr(node.object, env);
+        if (!Array.isArray(obj)) {
+          throw new FahimRuntimeError("Index e assign korte hole shei jinish ekta array hote hobe");
+        }
+        const idx = this.evalExpr(node.index, env);
+        let newVal;
+        if (node.op === "=") {
+          newVal = this.evalExpr(node.value, env);
+        } else {
+          const current = obj[idx];
+          const rhs = this.evalExpr(node.value, env);
+          newVal = this.applyBinary(node.op[0], current, rhs);
+        }
+        obj[idx] = newVal;
+        return newVal;
+      }
+      case "Member":
+        throw new FahimRuntimeError(
+          `'${node.property}' ekta method — eta call korte hobe, jemon: x.${node.property}()`
+        );
       case "Assign": {
         let newVal;
         if (node.op === "=") {
@@ -174,11 +253,17 @@ class Interpreter {
         return this.applyBinary(node.op, left, right);
       }
       case "Call": {
+        const args = node.args.map((a) => this.evalExpr(a, env));
+
+        if (node.callee.type === "Member") {
+          const obj = this.evalExpr(node.callee.object, env);
+          return this.callMethod(obj, node.callee.property, args);
+        }
+
         if (node.callee.type !== "Identifier") {
           throw new FahimRuntimeError("Only simple function calls are supported");
         }
         const fn = env.get(node.callee.name);
-        const args = node.args.map((a) => this.evalExpr(a, env));
         if (fn instanceof FahimFunction) return fn.call(this, args);
         if (typeof fn === "function") return fn(...args);
         throw new FahimRuntimeError(`'${node.callee.name}' ekta function na, call kora jabe na`);
@@ -186,6 +271,20 @@ class Interpreter {
       default:
         throw new FahimRuntimeError(`Unknown expression type: ${node.type}`);
     }
+  }
+
+  callMethod(obj, methodName, args) {
+    if (Array.isArray(obj)) {
+      const fn = ARRAY_METHODS[methodName];
+      if (!fn) throw new FahimRuntimeError(`Array er '${methodName}' name e kono method nai`);
+      return fn(obj, ...args);
+    }
+    if (typeof obj === "string") {
+      const fn = STRING_METHODS[methodName];
+      if (!fn) throw new FahimRuntimeError(`String er '${methodName}' name e kono method nai`);
+      return fn(obj, ...args);
+    }
+    throw new FahimRuntimeError(`'${methodName}' method eta ${fahimToString(obj)} er upore use kora jabe na`);
   }
 
   applyBinary(op, left, right) {
@@ -211,4 +310,4 @@ class Interpreter {
   }
 }
 
-module.exports = { Interpreter, FahimRuntimeError, fahimToString };
+module.exports = { Interpreter, FahimRuntimeError, fahimToString, ARRAY_METHODS, STRING_METHODS };

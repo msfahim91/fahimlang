@@ -1,0 +1,14 @@
+// Classic FizzBuzz: 3 er gun hole "Fizz", 5 er gun hole "Buzz", duitar gun hole "FizzBuzz"
+shuru fahim
+    jonno fahim (rakho fahim i = 1; i <= 20; i += 1) {
+        jodi fahim (i % 15 == 0) {
+            bol fahim "FizzBuzz";
+        } nahoy fahim (i % 3 == 0) {
+            bol fahim "Fizz";
+        } nahoy fahim (i % 5 == 0) {
+            bol fahim "Buzz";
+        } nahole fahim {
+            bol fahim i;
+        }
+    }
+shesh fahim

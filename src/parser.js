@@ -77,6 +77,7 @@ class Parser {
     if (this.matchKeywordFahim("bol")) return this.finishPrint();
     if (this.matchKeywordFahim("jodi")) return this.finishIf();
     if (this.matchKeywordFahim("jotokkhon")) return this.finishWhile();
+    if (this.matchKeywordFahim("jonno")) return this.finishFor();
     if (this.matchKeywordFahim("thamo")) { this.expect("SEMI"); return { type: "BreakStmt" }; }
     if (this.matchKeywordFahim("cholo")) { this.expect("SEMI"); return { type: "ContinueStmt" }; }
     if (this.matchKeywordFahim("kaj")) return this.finishFuncDecl();
@@ -129,6 +130,33 @@ class Parser {
     return { type: "WhileStmt", test, body };
   }
 
+  // jonno fahim (rakho fahim i = 0; i < 10; i += 1) { ... }
+  finishFor() {
+    this.expect("LPAREN");
+
+    let init = null;
+    if (this.matchKeywordFahim("rakho")) {
+      const name = this.expect("IDENT").value;
+      this.expect("OP", "=");
+      const value = this.parseExpression();
+      init = { type: "VarDecl", name, value };
+    } else if (!this.check("SEMI")) {
+      init = { type: "ExprStmt", expr: this.parseExpression() };
+    }
+    this.expect("SEMI");
+
+    let test = null;
+    if (!this.check("SEMI")) test = this.parseExpression();
+    this.expect("SEMI");
+
+    let update = null;
+    if (!this.check("RPAREN")) update = this.parseExpression();
+    this.expect("RPAREN");
+
+    const body = this.parseBlock();
+    return { type: "ForStmt", init, test, update, body };
+  }
+
   finishFuncDecl() {
     const name = this.expect("IDENT").value;
     this.expect("LPAREN");
@@ -160,17 +188,22 @@ class Parser {
   parseExpression() { return this.parseAssignment(); }
 
   parseAssignment() {
-    if (this.check("IDENT")) {
-      const opTokens = ["=", "+=", "-=", "*=", "/="];
-      const next = this.peek(1);
-      if (next && next.type === "OP" && opTokens.includes(next.value)) {
-        const name = this.advance().value;
-        const op = this.advance().value;
-        const value = this.parseAssignment();
-        return { type: "Assign", name, op, value };
+    const left = this.parseLogicOr();
+
+    const assignOps = ["=", "+=", "-=", "*=", "/="];
+    if (this.check("OP") && assignOps.includes(this.current().value)) {
+      const op = this.advance().value;
+      const value = this.parseAssignment();
+
+      if (left.type === "Identifier") {
+        return { type: "Assign", name: left.name, op, value };
       }
+      if (left.type === "Index") {
+        return { type: "IndexAssign", object: left.object, index: left.index, op, value };
+      }
+      this.error("Eta assign kora jay na, left side e shudhu variable ba array[index] hote hobe");
     }
-    return this.parseLogicOr();
+    return left;
   }
 
   parseLogicOr() {
@@ -244,15 +277,28 @@ class Parser {
 
   parseCall() {
     let expr = this.parsePrimary();
-    while (this.check("LPAREN")) {
-      this.advance();
-      const args = [];
-      if (!this.check("RPAREN")) {
-        args.push(this.parseExpression());
-        while (this.check("COMMA")) { this.advance(); args.push(this.parseExpression()); }
+    while (true) {
+      if (this.check("LPAREN")) {
+        this.advance();
+        const args = [];
+        if (!this.check("RPAREN")) {
+          args.push(this.parseExpression());
+          while (this.check("COMMA")) { this.advance(); args.push(this.parseExpression()); }
+        }
+        this.expect("RPAREN");
+        expr = { type: "Call", callee: expr, args };
+      } else if (this.check("DOT")) {
+        this.advance();
+        const property = this.expect("IDENT").value;
+        expr = { type: "Member", object: expr, property };
+      } else if (this.check("LBRACKET")) {
+        this.advance();
+        const index = this.parseExpression();
+        this.expect("RBRACKET");
+        expr = { type: "Index", object: expr, index };
+      } else {
+        break;
       }
-      this.expect("RPAREN");
-      expr = { type: "Call", callee: expr, args };
     }
     return expr;
   }
@@ -268,6 +314,16 @@ class Parser {
       if (t.value === "khali") return { type: "NullLit" };
     }
     if (t.type === "IDENT") { this.advance(); return { type: "Identifier", name: t.value }; }
+    if (t.type === "LBRACKET") {
+      this.advance();
+      const elements = [];
+      if (!this.check("RBRACKET")) {
+        elements.push(this.parseExpression());
+        while (this.check("COMMA")) { this.advance(); elements.push(this.parseExpression()); }
+      }
+      this.expect("RBRACKET");
+      return { type: "ArrayLit", elements };
+    }
     if (t.type === "LPAREN") {
       this.advance();
       const expr = this.parseExpression();
